@@ -33,7 +33,7 @@ object Form1: TForm1
     OnDragDrop = TreeView1DragDrop
     OnDragOver = TreeView1DragOver
     OnEdited = TreeView1Edited
-    ExplicitHeight = 348
+    ExplicitHeight = 351
   end
   object Panel1: TPanel
     Left = 606
@@ -42,7 +42,7 @@ object Form1: TForm1
     Height = 371
     Align = alRight
     TabOrder = 1
-    ExplicitHeight = 348
+    ExplicitHeight = 351
     object Button1: TButton
       Left = 6
       Top = 217
@@ -168,6 +168,14 @@ object Form1: TForm1
       object Remove1: TMenuItem
         Caption = 'Remove'
         OnClick = Remove1Click
+      end
+      object Expandall1: TMenuItem
+        Caption = 'Expand all'
+        OnClick = Expandall1Click
+      end
+      object Collapseall1: TMenuItem
+        Caption = 'Collapse all'
+        OnClick = Collapseall1Click
       end
     end
     object About1: TMenuItem

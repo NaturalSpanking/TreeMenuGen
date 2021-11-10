@@ -11,9 +11,9 @@ type
     ProgramIcon: TImage;
     ProductName: TLabel;
     Version: TLabel;
-    Copyright: TLabel;
     Comments: TLabel;
     OKButton: TButton;
+    CopyrightMemo: TMemo;
   private
     { Private declarations }
   public

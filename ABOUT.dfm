@@ -3,8 +3,8 @@ object AboutBox: TAboutBox
   Top = 108
   BorderStyle = bsDialog
   Caption = 'About'
-  ClientHeight = 213
-  ClientWidth = 298
+  ClientHeight = 322
+  ClientWidth = 480
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,10 +16,16 @@ object AboutBox: TAboutBox
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
+    AlignWithMargins = True
     Left = 8
     Top = 8
-    Width = 281
-    Height = 161
+    Width = 464
+    Height = 273
+    Margins.Left = 8
+    Margins.Top = 8
+    Margins.Right = 8
+    Margins.Bottom = 8
+    Align = alTop
     BevelInner = bvRaised
     BevelOuter = bvLowered
     ParentColor = True
@@ -67,30 +73,66 @@ object AboutBox: TAboutBox
       Top = 40
       Width = 53
       Height = 13
-      Caption = 'Version 0.1'
-      IsControl = True
-    end
-    object Copyright: TLabel
-      Left = 8
-      Top = 80
-      Width = 48
-      Height = 13
-      Caption = 'GNU GPL'
+      Caption = 'Version 0.2'
       IsControl = True
     end
     object Comments: TLabel
       Left = 8
-      Top = 104
+      Top = 80
       Width = 172
       Height = 13
       Caption = 'https://github.com/NaturalSpanking'
       WordWrap = True
       IsControl = True
     end
+    object CopyrightMemo: TMemo
+      Left = 2
+      Top = 104
+      Width = 460
+      Height = 167
+      Align = alBottom
+      Lines.Strings = (
+        'The MIT License (MIT)'
+        'Copyright '#169' 2021 '#1063#1077#1088#1082#1072#1089#1086#1074' '#1052#1072#1082#1089#1080#1084', <cahutap7@inbox.ru>'
+        ''
+        
+          'Permission is hereby granted, free of charge, to any person obta' +
+          'ining a copy of this '
+        
+          'software and associated documentation files (the '#8220'Software'#8221'), to' +
+          ' deal in the '
+        
+          'Software without restriction, including without limitation the r' +
+          'ights to use, copy, '
+        
+          'modify, merge, publish, distribute, sublicense, and/or sell copi' +
+          'es of the Software, '
+        
+          'and to permit persons to whom the Software is furnished to do so' +
+          ', subject to the '
+        'following conditions:'
+        ''
+        
+          'The above copyright notice and this permission notice shall be i' +
+          'ncluded in all copies '
+        'or substantial portions of the Software.'
+        ''
+        'THE SOFTWARE IS PROVIDED '#8220'AS IS'#8221', WITHOUT WARRANTY OF ANY KIND, '
+        'EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE '
+        'WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR '
+        'PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS '
+        'OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR '
+        'OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR '
+        'OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE '
+        'SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.')
+      ScrollBars = ssVertical
+      TabOrder = 0
+      ExplicitTop = 168
+    end
   end
   object OKButton: TButton
-    Left = 111
-    Top = 180
+    Left = 200
+    Top = 289
     Width = 75
     Height = 25
     Caption = 'OK'

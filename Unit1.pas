@@ -15,7 +15,7 @@ type
     id: integer;
     parent_id: integer;
     is_param: boolean;
-    name: string[50];
+    name: string[30];
     value: integer;
     v_min: integer;
     v_max: integer;
@@ -53,6 +53,8 @@ type
     Addroot2: TMenuItem;
     Addchild2: TMenuItem;
     Remove2: TMenuItem;
+    Expandall1: TMenuItem;
+    Collapseall1: TMenuItem;
     procedure TreeView1Change(Sender: TObject; Node: TTreeNode);
     procedure TreeView1Deletion(Sender: TObject; Node: TTreeNode);
     procedure TreeView1Edited(Sender: TObject; Node: TTreeNode; var S: string);
@@ -71,6 +73,8 @@ type
     procedure Saveas1Click(Sender: TObject);
     procedure About1Click(Sender: TObject);
     procedure Exit1Click(Sender: TObject);
+    procedure Expandall1Click(Sender: TObject);
+    procedure Collapseall1Click(Sender: TObject);
   private
     has_global_changes: boolean;
     has_param_changes: boolean;
@@ -85,6 +89,12 @@ type
     procedure TM_Load(FName: string);
     procedure TM_Apply;
     procedure TM_Generate(FName: string);
+    procedure TM_GenTreeArray(var SL: TStringList);
+    procedure TM_GenParamArray(var SL: TStringList);
+    procedure TM_GenPrintFunc(var SL: TStringList);
+    procedure TM_GenChangeFunc(var SL: TStringList);
+    procedure TM_GenSaveFunc(var SL: TStringList);
+    procedure TM_GenExecFunc(var SL: TStringList);
   public
     { Public declarations }
   end;
@@ -105,7 +115,7 @@ begin
   tmp_unit := new(PM_Unit);
   tmp_unit.parent_id := -1;
   tmp_unit.is_param := true;
-  tmp_unit.name := 'Menu' + IntToStr(global_counter);
+  tmp_unit.name := ShortString('Menu' + IntToStr(global_counter));
   tmp_unit.value := 0;
   tmp_unit.v_min := 0;
   tmp_unit.v_max := 100;
@@ -124,7 +134,11 @@ begin
   if curNode <> nil then
   begin
     tmp_unit := TM_CreateUnit;
-    TreeView1.Items.AddChildObject(curNode, tmp_unit.name, tmp_unit);
+    TreeView1.Items.AddChildObject(curNode, string(tmp_unit.name), tmp_unit);
+    tmp_unit := curNode.Data;
+    tmp_unit.is_param := false;
+    ValueListEditor1.Values['Is parameter'] :=
+      BoolToStr(tmp_unit.is_param, true);
     curNode.Expand(false);
     has_global_changes := true;
   end;
@@ -135,7 +149,7 @@ var
   tmp_unit: PM_Unit;
 begin
   tmp_unit := TM_CreateUnit;
-  TreeView1.Items.AddObject(nil, tmp_unit.name, tmp_unit);
+  TreeView1.Items.AddObject(nil, string(tmp_unit.name), tmp_unit);
   has_global_changes := true;
 end;
 
@@ -145,10 +159,18 @@ var
 begin
   if curNode = nil then
     Exit;
-  curNode.Text := ValueListEditor1.Values['Name'];
+
+  if (curNode.getFirstChild <> nil) and
+    (StrToBool(ValueListEditor1.Values['Is parameter'])) then
+  begin
+    MessageDlg('This node cannot be parameter because has children..',
+      mtInformation, [mbOK], 0);
+    ValueListEditor1.Values['Is parameter'] := 'False';
+  end;
   tmp_unit := curNode.Data;
   tmp_unit.is_param := StrToBool(ValueListEditor1.Values['Is parameter']);
-  tmp_unit.name := ValueListEditor1.Values['Name'];
+  tmp_unit.name := ShortString(ValueListEditor1.Values['Name']);
+  curNode.Text := string(tmp_unit.name);
   tmp_unit.value := StrToInt(ValueListEditor1.Values['Init value']);
   tmp_unit.v_min := StrToInt(ValueListEditor1.Values['Min value']);
   tmp_unit.v_max := StrToInt(ValueListEditor1.Values['Max value']);
@@ -174,38 +196,75 @@ end;
 
 procedure TForm1.TM_Generate(FName: string);
 var
-  S: string;
   SL: TStringList;
-  i, j, X, parent_count: integer;
-  tmp_unit: PM_Unit;
 begin
   SL := TStringList.Create;
-  SL.Add('#define TM_MENU_SIZE ' + IntToStr(TreeView1.Items.Count));
-  SL.Add('const TM_Unit menu[TM_MENU_SIZE]={');
+  TM_GenTreeArray(SL);
+  TM_GenParamArray(SL);
+  TM_GenPrintFunc(SL);
+  TM_GenChangeFunc(SL);
+  TM_GenSaveFunc(SL);
+  TM_GenExecFunc(SL);
+  SL.SaveToFile(FName);
+  SL.Free;
+  ShellExecute(Application.Handle, 'open', PWideChar(FName), '', '', SW_SHOW);
+end;
+
+procedure TForm1.TM_GenChangeFunc(var SL: TStringList);
+var
+  tmp_unit: PM_Unit;
+  i: integer;
+begin
+  SL.Add('void ChangeParam(int index){');
+  SL.Add('  // change parameter function prototype');
+  SL.Add('  switch(index){');
   for i := 0 to TreeView1.Items.Count - 1 do
   begin
-    parent_count := 0;
     tmp_unit := TreeView1.Items[i].Data;
-    tmp_unit.id := TreeView1.Items[i].AbsoluteIndex;
-    if TreeView1.Items[i].Parent <> nil then
-      tmp_unit.parent_id := TreeView1.Items[i].Parent.AbsoluteIndex;
-    parent_count := GetParentCount(TreeView1.Items[i]);
-    S := '';
-    for j := 1 to parent_count do
-      S := S + '  ';
-    S := S + '  {' + IntToStr(tmp_unit.id) + ', ' + IntToStr(tmp_unit.parent_id)
-      + ', ' + LowerCase(BoolToStr(tmp_unit.is_param, true)) + ', "' +
-      tmp_unit.name + '", ' + IntToStr(tmp_unit.v_min) + ', ' +
-      IntToStr(tmp_unit.v_max) + ', ' + IntToStr(tmp_unit.d_min) + ', ' +
-      IntToStr(tmp_unit.d_max);
-    if i < TreeView1.Items.Count - 1 then
-      S := S + '},'
-    else
-      S := S + '}';
-    SL.Add(S);
+    if tmp_unit.is_param then
+    begin
+      SL.Add('    case ' + IntToStr(i) + ': // ' + string(tmp_unit.name));
+      SL.Add('');
+      SL.Add('    break; // end of ' + string(tmp_unit.name));
+    end;
   end;
-  SL.Add('};');
+  SL.Add('    default:');
+  SL.Add('    break;');
+  SL.Add('  }');
+  SL.Add('}');
   SL.Add('');
+end;
+
+procedure TForm1.TM_GenExecFunc(var SL: TStringList);
+var
+  tmp_unit: PM_Unit;
+  i: integer;
+begin
+  SL.Add('void ExecuteCmd(int index){');
+  SL.Add('  // Ñommand execution function prototype');
+  SL.Add('  switch(index){');
+  for i := 0 to TreeView1.Items.Count - 1 do
+  begin
+    tmp_unit := TreeView1.Items[i].Data;
+    if (not tmp_unit.is_param) and (TreeView1.Items[i].getFirstChild = nil) then
+    begin
+      SL.Add('    case ' + IntToStr(i) + ': // ' + string(tmp_unit.name));
+      SL.Add('');
+      SL.Add('    break; // end of ' + string(tmp_unit.name));
+    end;
+  end;
+  SL.Add('    default:');
+  SL.Add('    break;');
+  SL.Add('  }');
+  SL.Add('}');
+end;
+
+procedure TForm1.TM_GenParamArray(var SL: TStringList);
+var
+  tmp_unit: PM_Unit;
+  i, X: integer;
+  S: string;
+begin
   SL.Add('TM_Param params[TM_MENU_SIZE]={');
   S := '  ';
   X := 0;
@@ -227,10 +286,84 @@ begin
   end;
   SL.Add(S);
   SL.Add('};');
+  SL.Add('');
+end;
 
-  SL.SaveToFile(FName);
+procedure TForm1.TM_GenPrintFunc(var SL: TStringList);
+begin
+  SL.Add('void PrintMenu(int index,TM_DeepLevel DeepLevel){');
+  SL.Add('  // printing function prototype');
+  SL.Add('  switch(DeepLevel){');
+  SL.Add('    case DL_NAME: // print name');
+  SL.Add('');
+  SL.Add('    break;');
+  SL.Add('    case DL_DELTA: // print param with cursor on symbol which will be change');
+  SL.Add('');
+  SL.Add('    break;');
+  SL.Add('    case DL_PARAM: // print param with cursor on symbol which changing');
+  SL.Add('');
+  SL.Add('    break;');
+  SL.Add('  }');
+  SL.Add('}');
+  SL.Add('');
+end;
 
-  ShellExecute(Application.Handle, 'open', PWideChar(FName), '', '', SW_SHOW);
+procedure TForm1.TM_GenSaveFunc(var SL: TStringList);
+var
+  tmp_unit: PM_Unit;
+  i: integer;
+begin
+  SL.Add('void SaveParam(int index){');
+  SL.Add('  // save parameter function prototype');
+  SL.Add('  switch(index){');
+  for i := 0 to TreeView1.Items.Count - 1 do
+  begin
+    tmp_unit := TreeView1.Items[i].Data;
+    if tmp_unit.is_param then
+    begin
+      SL.Add('    case ' + IntToStr(i) + ': // ' + string(tmp_unit.name));
+      SL.Add('');
+      SL.Add('    break; // end of ' + string(tmp_unit.name));
+    end;
+  end;
+  SL.Add('    default:');
+  SL.Add('    break;');
+  SL.Add('  }');
+  SL.Add('}');
+  SL.Add('');
+end;
+
+procedure TForm1.TM_GenTreeArray(var SL: TStringList);
+var
+  S: string;
+  i, j, parent_count: integer;
+  tmp_unit: PM_Unit;
+begin
+  SL.Add('#define TM_MENU_SIZE ' + IntToStr(TreeView1.Items.Count));
+  SL.Add('const TM_Unit menu[TM_MENU_SIZE]={');
+  for i := 0 to TreeView1.Items.Count - 1 do
+  begin
+    tmp_unit := TreeView1.Items[i].Data;
+    tmp_unit.id := TreeView1.Items[i].AbsoluteIndex;
+    if TreeView1.Items[i].Parent <> nil then
+      tmp_unit.parent_id := TreeView1.Items[i].Parent.AbsoluteIndex;
+    parent_count := GetParentCount(TreeView1.Items[i]);
+    S := '';
+    for j := 1 to parent_count do
+      S := S + '  ';
+    S := S + '  {' + IntToStr(tmp_unit.id) + ', ' + IntToStr(tmp_unit.parent_id)
+      + ', ' + LowerCase(BoolToStr(tmp_unit.is_param, true)) + ', "' +
+      string(tmp_unit.name) + '", ' + IntToStr(tmp_unit.v_min) + ', ' +
+      IntToStr(tmp_unit.v_max) + ', ' + IntToStr(tmp_unit.d_min) + ', ' +
+      IntToStr(tmp_unit.d_max);
+    if i < TreeView1.Items.Count - 1 then
+      S := S + '},'
+    else
+      S := S + '}';
+    SL.Add(S);
+  end;
+  SL.Add('};');
+  SL.Add('');
 end;
 
 procedure TForm1.TM_Load(FName: string);
@@ -286,6 +419,11 @@ begin
   Form1.Close;
 end;
 
+procedure TForm1.Expandall1Click(Sender: TObject);
+begin
+  TreeView1.FullExpand;
+end;
+
 procedure TForm1.About1Click(Sender: TObject);
 begin
   AboutBox.ShowModal;
@@ -304,6 +442,11 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   TM_Apply;
+end;
+
+procedure TForm1.Collapseall1Click(Sender: TObject);
+begin
+  TreeView1.FullCollapse;
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -359,7 +502,7 @@ procedure TForm1.TreeView1Change(Sender: TObject; Node: TTreeNode);
 var
   tmp_unit: PM_Unit;
 begin
-  if has_param_changes then
+  if (has_param_changes) and (curNode <> nil) then
     if MessageDlg('Want apply changes?', mtConfirmation, [mbYes, mbNo], 0) = mrYes
     then
       TM_Apply
@@ -372,7 +515,7 @@ begin
     tmp_unit := Node.Data;
     ValueListEditor1.Values['Is parameter'] :=
       BoolToStr(tmp_unit.is_param, true);
-    ValueListEditor1.Values['Name'] := tmp_unit.name;
+    ValueListEditor1.Values['Name'] := string(tmp_unit.name);
     ValueListEditor1.Values['Init value'] := IntToStr(tmp_unit.value);
     ValueListEditor1.Values['Min value'] := IntToStr(tmp_unit.v_min);
     ValueListEditor1.Values['Max value'] := IntToStr(tmp_unit.v_max);
@@ -417,7 +560,8 @@ procedure TForm1.TreeView1DragOver(Sender, Source: TObject; X, Y: integer;
   State: TDragState; var Accept: boolean);
 begin
   Accept := Sender = Source;
-  if Accept then has_global_changes:=true;
+  if Accept then
+    has_global_changes := true;
 end;
 
 procedure TForm1.TreeView1Edited(Sender: TObject; Node: TTreeNode;
@@ -426,13 +570,14 @@ var
   tmp_unit: PM_Unit;
 begin
   tmp_unit := Node.Data;
-  tmp_unit.name := S;
-  ValueListEditor1.Values['Name'] := tmp_unit.name;
+  tmp_unit.name := ShortString(S);
+  ValueListEditor1.Values['Name'] := string(tmp_unit.name);
 end;
 
 procedure TForm1.ValueListEditor1KeyPress(Sender: TObject; var Key: Char);
 begin
-  has_param_changes := true;
+  if curNode <> nil then
+    has_param_changes := true;
   if Key = #13 then
     TM_Apply;
 end;
