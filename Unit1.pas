@@ -12,8 +12,6 @@ uses
 type
 
   TM_Unit = record // структура узла дерева
-    id: integer;
-    parent_id: integer;
     is_param: boolean;
     name: string[30];
     value: integer;
@@ -113,7 +111,6 @@ var
   tmp_unit: PM_Unit;
 begin
   tmp_unit := new(PM_Unit);
-  tmp_unit.parent_id := -1;
   tmp_unit.is_param := true;
   tmp_unit.name := ShortString('Menu' + IntToStr(global_counter));
   tmp_unit.value := 0;
@@ -336,7 +333,7 @@ end;
 procedure TForm1.TM_GenTreeArray(var SL: TStringList);
 var
   S: string;
-  i, j, parent_count: integer;
+  i, j, parent_id, parent_count: integer;
   tmp_unit: PM_Unit;
 begin
   SL.Add('#define TM_MENU_SIZE ' + IntToStr(TreeView1.Items.Count));
@@ -344,15 +341,16 @@ begin
   for i := 0 to TreeView1.Items.Count - 1 do
   begin
     tmp_unit := TreeView1.Items[i].Data;
-    tmp_unit.id := TreeView1.Items[i].AbsoluteIndex;
     if TreeView1.Items[i].Parent <> nil then
-      tmp_unit.parent_id := TreeView1.Items[i].Parent.AbsoluteIndex;
+      parent_id := TreeView1.Items[i].Parent.AbsoluteIndex
+    else
+      parent_id := -1;
     parent_count := GetParentCount(TreeView1.Items[i]);
     S := '';
     for j := 1 to parent_count do
       S := S + '  ';
-    S := S + '  {' + IntToStr(tmp_unit.id) + ', ' + IntToStr(tmp_unit.parent_id)
-      + ', ' + LowerCase(BoolToStr(tmp_unit.is_param, true)) + ', "' +
+    S := S + '  {' + IntToStr(parent_id) + ', ' +
+      LowerCase(BoolToStr(tmp_unit.is_param, true)) + ', "' +
       string(tmp_unit.name) + '", ' + IntToStr(tmp_unit.v_min) + ', ' +
       IntToStr(tmp_unit.v_max) + ', ' + IntToStr(tmp_unit.d_min) + ', ' +
       IntToStr(tmp_unit.d_max);
@@ -489,13 +487,21 @@ begin
   if OpenDialog1.FileName <> '' then
     TM_Save(OpenDialog1.FileName)
   else if SaveDialog1.Execute then
-    TM_Save(SaveDialog1.FileName);
+    if not FileExists(SaveDialog1.FileName) then
+      TM_Save(SaveDialog1.FileName)
+    else if MessageDlg('File is exist. Rewrite?', mtConfirmation, [mbYes, mbNo],
+      0) = mrYes then
+      TM_Save(SaveDialog1.FileName);
 end;
 
 procedure TForm1.Saveas1Click(Sender: TObject);
 begin
   if SaveDialog1.Execute then
-    TM_Save(SaveDialog1.FileName);
+    if not FileExists(SaveDialog1.FileName) then
+      TM_Save(SaveDialog1.FileName)
+    else if MessageDlg('File is exist. Rewrite?', mtConfirmation, [mbYes, mbNo],
+      0) = mrYes then
+      TM_Save(SaveDialog1.FileName);
 end;
 
 procedure TForm1.TreeView1Change(Sender: TObject; Node: TTreeNode);
@@ -553,6 +559,9 @@ begin
     else if (htOnIndent in HT) or (htOnRight in HT) then
       AttachMode := naInsert;
     TreeView1.Selected.MoveTo(AnItem, AttachMode);
+    if AttachMode = naAddChild then
+      PM_Unit(AnItem.Data).is_param := false;
+    has_global_changes := true;
   end;
 end;
 
@@ -560,8 +569,6 @@ procedure TForm1.TreeView1DragOver(Sender, Source: TObject; X, Y: integer;
   State: TDragState; var Accept: boolean);
 begin
   Accept := Sender = Source;
-  if Accept then
-    has_global_changes := true;
 end;
 
 procedure TForm1.TreeView1Edited(Sender: TObject; Node: TTreeNode;
