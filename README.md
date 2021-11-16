@@ -21,7 +21,7 @@ Tree menus generator for MCUs.
 3. Создать выходной файл кнопкой `Generate`.
 4. Скопировать содержимое в целевой проект.
 
-<a id="install"></a>
+<a id="tree"></a>
 ## Описание дерева
 Каждый узел в дереве может быть:
 - Подменю - включает в себя другие узлы, при переходе первый дочерний узел становится основным;
@@ -30,7 +30,7 @@ Tree menus generator for MCUs.
 
 Каждый узел содержит поля:
 - `id` - идентификатор узла, индекс в выходном массиве;
-- `parent_id` - идентификатор родителя, индекс родителя в выходном массива;
+- `parent_id` - идентификатор родителя, индекс родителя в выходном массиве;
 - `Is parameter` - признак параметра, не может быть `true` для подменю;
 - `Name` - имя узла;
 - `Init value` - начальное значение;
@@ -45,6 +45,7 @@ Tree menus generator for MCUs.
 Переходы по дереву:
 - Влево\вправо - смена узла, выбор разряда или изменение значения разряда;
 - Вперед\назад - смена узла, выполнение команды, переход к выбору разряда, или переход к изменению значения.
+- Спец. функция - дополнительная команда, например сохранение в EEPROM.
 
 <a id="output"></a>
 ## Выходной файл
@@ -113,10 +114,20 @@ void ChangeParam(int index){
   }
 }
 ```
-6. Прототип функции сохранения. Вызывается при сохранении параметра в EEPROM.
+6. Прототип функции выполнения. Вызывается при выполнении команды.
 ```c
-void SaveParam(int index){
-  // save parameter function prototype
+void ExecuteCmd(int index){
+  // Сommand execution function prototype
+  switch(index){
+    default:
+    break;
+  }
+}
+```
+7. Прототип спец. функции. Например сохранение параметра в EEPROM.
+```c
+void SpecFunction(int index){
+  // special function prototype
   switch(index){
     case 0: // Menu0
 
@@ -138,14 +149,3 @@ void SaveParam(int index){
   }
 }
 ```
-7. Прототип функции выполнения. Вызывается при выполнении команды.
-```c
-void ExecuteCmd(int index){
-  // Сommand execution function prototype
-  switch(index){
-    default:
-    break;
-  }
-}
-```
-

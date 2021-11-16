@@ -91,7 +91,7 @@ type
     procedure TM_GenParamArray(var SL: TStringList);
     procedure TM_GenPrintFunc(var SL: TStringList);
     procedure TM_GenChangeFunc(var SL: TStringList);
-    procedure TM_GenSaveFunc(var SL: TStringList);
+    procedure TM_GenSpecFunc(var SL: TStringList);
     procedure TM_GenExecFunc(var SL: TStringList);
   public
     { Public declarations }
@@ -200,8 +200,8 @@ begin
   TM_GenParamArray(SL);
   TM_GenPrintFunc(SL);
   TM_GenChangeFunc(SL);
-  TM_GenSaveFunc(SL);
   TM_GenExecFunc(SL);
+  TM_GenSpecFunc(SL);
   SL.SaveToFile(FName);
   SL.Free;
   ShellExecute(Application.Handle, 'open', PWideChar(FName), '', '', SW_SHOW);
@@ -305,18 +305,18 @@ begin
   SL.Add('');
 end;
 
-procedure TForm1.TM_GenSaveFunc(var SL: TStringList);
+procedure TForm1.TM_GenSpecFunc(var SL: TStringList);
 var
   tmp_unit: PM_Unit;
   i: integer;
 begin
-  SL.Add('void SaveParam(int index){');
-  SL.Add('  // save parameter function prototype');
+  SL.Add('void SpecFunction(int index){');
+  SL.Add('  // special function prototype');
   SL.Add('  switch(index){');
   for i := 0 to TreeView1.Items.Count - 1 do
   begin
     tmp_unit := TreeView1.Items[i].Data;
-    if tmp_unit.is_param then
+    if TreeView1.Items[i].getFirstChild = nil then
     begin
       SL.Add('    case ' + IntToStr(i) + ': // ' + string(tmp_unit.name));
       SL.Add('');

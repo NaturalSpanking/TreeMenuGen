@@ -910,7 +910,7 @@ object AboutBox: TAboutBox
       Top = 40
       Width = 53
       Height = 13
-      Caption = 'Version 0.3'
+      Caption = 'Version 0.4'
       IsControl = True
     end
     object Comments: TLabel
